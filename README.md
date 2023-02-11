@@ -61,9 +61,9 @@ You can either submit us:
  - The `MessageTracker` won't be handling concurrent calls.
 
 ### Implementation
- - For the `Add()` and `Message()` functions I used a map, the cheaper way for key value access.
+ - For the `Add()` and `Message()` functions I used a map, the cheapest way for key value access.
  - For the `Messages()` I used a slice in order to conserve the order of the inserted messages (FIFO).
- - For `Delete()` I used a concurrent search spawning as many threads as CPUs. This makes the search faster for larger amount of messages.
+ - For `Delete()` I used a concurrent search spawning as many threads as CPUs. This makes the search faster for large amount of messages.
 
 ### Results
  - Coverage:
