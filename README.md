@@ -22,9 +22,9 @@ type MessageTracker interface {
 	Add(message *Message) (err error)
 	// Delete will delete message from tracker
 	Delete(id string) (err error)
-	// Get returns a message for a given ID.  Message is retained in tracker
+	// Message returns a message for a given ID.  Message is retained in tracker
 	Message(id string) (message *Message, err error)
-	// All returns messages in the order in which they were received
+	// Messages returns messages in the order in which they were received
 	Messages() (messages []*Message)
 }
 ```
@@ -36,7 +36,7 @@ There are some tests within the `network_test` package found in `network/message
 There are a few key points to take into account when implementing this tracker:
 
 - The tracker is meant to be a hot path in our program so performance is critical.
-- Duplicate messages based on `Message.ID` should only be returned by `MessageTracker.All()` once.
+- Duplicate messages based on `Message.ID` should only be returned by `MessageTracker.Messages()` once.
 - The tracker should only hold a configurable maximum amount of messages so it does not grow in size indefinitely.
 
 ## Submission Criteria
@@ -53,3 +53,42 @@ You can either submit us:
 
 - a URL to your Git repository
 - a zip file containing your Git repository
+
+## Implementation
+
+### Assumptions
+ - Based on what I see in the tests, if a duplicate is sent to the `MessageTracker`, no `Message` should be added as well as no error should be returned. Basically there is no situation when an error would be returned from `Add()` function, so we could delete it from its signature. 
+ - The `MessageTracker` won't be handling concurrent calls.
+
+### Implementation
+ - For the `Add()` and `Message()` functions I used a map, the cheaper way for key value access.
+ - For the `Messages()` I used a slice in order to conserve the order of the inserted messages (FIFO).
+ - For `Delete()` I used a concurrent search spawning as many threads as CPUs. This makes the search faster for larger amount of messages.
+
+### Results
+ - Coverage:
+```
+PASS
+        github.com/ChainSafe/gossamer-go-interview/network      coverage: 100.0% of statements
+ok      github.com/ChainSafe/gossamer-go-interview/network      0.226s
+
+```
+
+ - Benchmark on personal computer with 16 cores:
+```
+goos: darwin
+goarch: amd64
+pkg: github.com/ChainSafe/gossamer-go-interview/network
+cpu: Intel(R) Core(TM) i9-9880H CPU @ 2.30GHz
+BenchmarkTestTrackerAddAndGetAllMessages_10000
+BenchmarkTestTrackerAddAndGetAllMessages_10000-16         	     254	   4374659 ns/op
+BenchmarkTestTrackerAddAndGetSpecificMessages_10000
+BenchmarkTestTrackerAddAndGetSpecificMessages_10000-16    	     208	   5701777 ns/op
+BenchmarkTestTrackerOverflowGetAll_10000
+BenchmarkTestTrackerOverflowGetAll_10000-16               	     134	   8975874 ns/op
+BenchmarkTestTrackerAddAndDeletingSome_10000
+BenchmarkTestTrackerAddAndDeletingSome_10000-16           	      55	  21128383 ns/op
+BenchmarkTestTrackerAddAndDeletingSome_100000
+BenchmarkTestTrackerAddAndDeletingSome_100000-16          	       2	 523629750 ns/op
+PASS
+```

@@ -2,6 +2,7 @@ package network_test
 
 import (
 	"fmt"
+	"github.com/google/uuid"
 	"testing"
 
 	"github.com/ChainSafe/gossamer-go-interview/network"
@@ -18,6 +19,15 @@ func generateMessage(n int) *network.Message {
 
 func generateID(n int) string {
 	return fmt.Sprintf("someID%d", n)
+}
+
+func generateMessageWithRandomUUID(n int) *network.Message {
+	id := uuid.New()
+	return &network.Message{
+		ID:     id.String(),
+		PeerID: fmt.Sprintf("somePeerID%d", n),
+		Data:   []byte{0, 1, 1},
+	}
 }
 
 func TestMessageTracker_Add(t *testing.T) {
@@ -190,19 +200,6 @@ func TestMessageTracker_Message(t *testing.T) {
 	})
 }
 
-func BenchmarkTestTrackerAddAndGetAllMessages_1000(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		length := 1000
-		mt := network.NewMessageTracker(length)
-
-		for j := 0; j < length; j++ {
-			_ = mt.Add(generateMessage(j))
-		}
-
-		_ = mt.Messages()
-	}
-}
-
 func BenchmarkTestTrackerAddAndGetAllMessages_10000(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		length := 10000
@@ -216,18 +213,6 @@ func BenchmarkTestTrackerAddAndGetAllMessages_10000(b *testing.B) {
 	}
 }
 
-func BenchmarkTestTrackerAddAndGetSpecificMessages_1000(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		length := 1000
-		mt := network.NewMessageTracker(length)
-
-		for j := 0; j < length; j++ {
-			_ = mt.Add(generateMessage(j))
-			_, _ = mt.Message(generateID(j))
-		}
-	}
-}
-
 func BenchmarkTestTrackerAddAndGetSpecificMessages_10000(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		length := 10000
@@ -237,19 +222,6 @@ func BenchmarkTestTrackerAddAndGetSpecificMessages_10000(b *testing.B) {
 			_ = mt.Add(generateMessage(j))
 			_, _ = mt.Message(generateID(j))
 		}
-	}
-}
-
-func BenchmarkTestTrackerOverflowGetAll_1000(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		length := 1000
-		mt := network.NewMessageTracker(length)
-
-		for j := 0; j < length*2; j++ {
-			_ = mt.Add(generateMessage(j))
-		}
-
-		_ = mt.Messages()
 	}
 }
 
@@ -266,38 +238,54 @@ func BenchmarkTestTrackerOverflowGetAll_10000(b *testing.B) {
 	}
 }
 
-func BenchmarkTestTrackerAddAndDeleteHalf_1000(b *testing.B) {
+func BenchmarkTestTrackerAddAndDeletingSome_10000(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		length := 1000
+		length := 10000
 		mt := network.NewMessageTracker(length)
+		idsToDelete := make([]string, 0)
 
 		for j := 0; j < length; j++ {
-			_ = mt.Add(generateMessage(j))
+			msg := generateMessageWithRandomUUID(j)
+			_ = mt.Add(msg)
+			if j%20 == 0 {
+				idsToDelete = append(idsToDelete, msg.ID)
+			}
 		}
 
 		_ = mt.Messages()
 
-		for j := 0; j < length/2; j++ {
-			_ = mt.Delete(generateMessage(j).ID)
+		for _, id := range idsToDelete {
+			err := mt.Delete(id)
+			if err != nil {
+				b.Fatal("wrong ID")
+			}
 		}
 
 		_ = mt.Messages()
 	}
 }
 
-func BenchmarkTestTrackerAddAndDeleteHalf_10000(b *testing.B) {
+func BenchmarkTestTrackerAddAndDeletingSome_100000(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		length := 10000
+		length := 100000
 		mt := network.NewMessageTracker(length)
+		idsToDelete := make([]string, 0)
 
 		for j := 0; j < length; j++ {
-			_ = mt.Add(generateMessage(j))
+			msg := generateMessageWithRandomUUID(j)
+			_ = mt.Add(msg)
+			if j%20 == 0 {
+				idsToDelete = append(idsToDelete, msg.ID)
+			}
 		}
 
 		_ = mt.Messages()
 
-		for j := 0; j < length/2; j++ {
-			_ = mt.Delete(generateMessage(j).ID)
+		for _, id := range idsToDelete {
+			err := mt.Delete(id)
+			if err != nil {
+				b.Fatal("wrong ID")
+			}
 		}
 
 		_ = mt.Messages()
