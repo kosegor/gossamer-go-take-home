@@ -10,10 +10,14 @@ import (
 
 func generateMessage(n int) *network.Message {
 	return &network.Message{
-		ID:     fmt.Sprintf("someID%d", n),
+		ID:     generateID(n),
 		PeerID: fmt.Sprintf("somePeerID%d", n),
 		Data:   []byte{0, 1, 1},
 	}
+}
+
+func generateID(n int) string {
+	return fmt.Sprintf("someID%d", n)
 }
 
 func TestMessageTracker_Add(t *testing.T) {
@@ -184,4 +188,118 @@ func TestMessageTracker_Message(t *testing.T) {
 		assert.ErrorIs(t, err, network.ErrMessageNotFound)
 		assert.Nil(t, msg)
 	})
+}
+
+func BenchmarkTestTrackerAddAndGetAllMessages_1000(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		length := 1000
+		mt := network.NewMessageTracker(length)
+
+		for j := 0; j < length; j++ {
+			_ = mt.Add(generateMessage(j))
+		}
+
+		_ = mt.Messages()
+	}
+}
+
+func BenchmarkTestTrackerAddAndGetAllMessages_10000(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		length := 10000
+		mt := network.NewMessageTracker(length)
+
+		for j := 0; j < length; j++ {
+			_ = mt.Add(generateMessage(j))
+		}
+
+		_ = mt.Messages()
+	}
+}
+
+func BenchmarkTestTrackerAddAndGetSpecificMessages_1000(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		length := 1000
+		mt := network.NewMessageTracker(length)
+
+		for j := 0; j < length; j++ {
+			_ = mt.Add(generateMessage(j))
+			_, _ = mt.Message(generateID(j))
+		}
+	}
+}
+
+func BenchmarkTestTrackerAddAndGetSpecificMessages_10000(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		length := 10000
+		mt := network.NewMessageTracker(length)
+
+		for j := 0; j < length; j++ {
+			_ = mt.Add(generateMessage(j))
+			_, _ = mt.Message(generateID(j))
+		}
+	}
+}
+
+func BenchmarkTestTrackerOverflowGetAll_1000(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		length := 1000
+		mt := network.NewMessageTracker(length)
+
+		for j := 0; j < length*2; j++ {
+			_ = mt.Add(generateMessage(j))
+		}
+
+		_ = mt.Messages()
+	}
+}
+
+func BenchmarkTestTrackerOverflowGetAll_10000(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		length := 10000
+		mt := network.NewMessageTracker(length)
+
+		for j := 0; j < length*2; j++ {
+			_ = mt.Add(generateMessage(j))
+		}
+
+		_ = mt.Messages()
+	}
+}
+
+func BenchmarkTestTrackerAddAndDeleteHalf_1000(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		length := 1000
+		mt := network.NewMessageTracker(length)
+
+		for j := 0; j < length; j++ {
+			_ = mt.Add(generateMessage(j))
+		}
+
+		_ = mt.Messages()
+
+		for j := 0; j < length/2; j++ {
+			_ = mt.Delete(generateMessage(j).ID)
+		}
+
+		_ = mt.Messages()
+	}
+}
+
+func BenchmarkTestTrackerAddAndDeleteHalf_10000(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		length := 10000
+		mt := network.NewMessageTracker(length)
+
+		for j := 0; j < length; j++ {
+			_ = mt.Add(generateMessage(j))
+		}
+
+		_ = mt.Messages()
+
+		for j := 0; j < length/2; j++ {
+			_ = mt.Delete(generateMessage(j).ID)
+		}
+
+		_ = mt.Messages()
+	}
 }
