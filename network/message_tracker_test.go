@@ -3,6 +3,7 @@ package network_test
 import (
 	"fmt"
 	"github.com/google/uuid"
+	"runtime"
 	"testing"
 
 	"github.com/ChainSafe/gossamer-go-interview/network"
@@ -202,24 +203,22 @@ func TestMessageTracker_Message(t *testing.T) {
 
 func TestMessageTracker_DeleteLastMessage(t *testing.T) {
 	t.Run("delete last message", func(t *testing.T) {
-		length := 5
+		length := runtime.NumCPU() + 1
+		result := make([]*network.Message, 0)
 
 		mt := network.NewMessageTracker(length)
 		for i := 0; i < length; i++ {
-			err := mt.Add(generateMessage(i))
+			msg := generateMessage(i)
+			result = append(result, msg)
+			err := mt.Add(msg)
 			assert.NoError(t, err)
 		}
 
-		err := mt.Delete(generateID(4))
+		err := mt.Delete(generateID(length - 1))
 		assert.NoError(t, err)
 
 		msgs := mt.Messages()
-		assert.Equal(t, []*network.Message{
-			generateMessage(0),
-			generateMessage(1),
-			generateMessage(2),
-			generateMessage(3),
-		}, msgs)
+		assert.Equal(t, result[:length-1], msgs)
 	})
 }
 
