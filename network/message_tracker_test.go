@@ -200,6 +200,29 @@ func TestMessageTracker_Message(t *testing.T) {
 	})
 }
 
+func TestMessageTracker_DeleteLastMessage(t *testing.T) {
+	t.Run("delete last message", func(t *testing.T) {
+		length := 5
+
+		mt := network.NewMessageTracker(length)
+		for i := 0; i < length; i++ {
+			err := mt.Add(generateMessage(i))
+			assert.NoError(t, err)
+		}
+
+		err := mt.Delete(generateID(4))
+		assert.NoError(t, err)
+
+		msgs := mt.Messages()
+		assert.Equal(t, []*network.Message{
+			generateMessage(0),
+			generateMessage(1),
+			generateMessage(2),
+			generateMessage(3),
+		}, msgs)
+	})
+}
+
 func BenchmarkTestTrackerAddAndGetAllMessages_10000(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		length := 10000

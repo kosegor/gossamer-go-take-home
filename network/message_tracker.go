@@ -121,6 +121,9 @@ func (t *Tracker) getMessageIndex(id string) int {
 	for i := 0; i < threads; i++ {
 		start := i * batch
 		end := start + batch
+		if i == threads-1 {
+			end = msgLength
+		}
 
 		go getMessageIndexByBatch(id, t.msgList[start:end], start, indexChan)
 	}
